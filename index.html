@@ -29,11 +29,16 @@
         background: rgba(255,255,255,0.2);
         cursor: pointer;
         z-index: 1000;
+        border-radius: 50%;
+      }
+      .fullscreen:hover {
+        background: rgba(255,255,255,0.4);
       }
     </style>
     <script src="unityloader.js"></script>
     <script src="unityprogress.js"></script>
     <script>
+      // WebGL compatibility fixes
       var gameInstance = UnityLoader.instantiate(
         "gameContainer",
         "build.json",
@@ -42,10 +47,60 @@
           Module: {
             onRuntimeInitialized: function () {
               UnityProgress(gameInstance, "complete");
+              console.log("Unity runtime initialized successfully");
             },
-          },
+            onAbort: function(error) {
+              console.error("Unity aborted with error:", error);
+            },
+            // WebGL context attributes for better compatibility
+            contextAttributes: {
+              alpha: false,
+              depth: true,
+              stencil: true,
+              antialias: false,
+              premultipliedAlpha: false,
+              preserveDrawingBuffer: false,
+              powerPreference: "default"
+            }
+          }
         }
       );
+
+      // Error handler for Unity
+      window.addEventListener('error', function(e) {
+        if (e.message && e.message.includes('WebGL')) {
+          console.log('WebGL error caught:', e.message);
+          // Try to fallback to WebGL 1.0
+          if (gameInstance && gameInstance.Module) {
+            gameInstance.Module.webglContextAttributes = {
+              alpha: false,
+              depth: true,
+              stencil: true,
+              antialias: false,
+              premultipliedAlpha: false,
+              preserveDrawingBuffer: false,
+              powerPreference: "low-power"
+            };
+          }
+        }
+      });
+
+      // Log WebGL info for debugging
+      function checkWebGL() {
+        try {
+          var canvas = document.createElement('canvas');
+          var gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+          if (gl) {
+            console.log('WebGL renderer:', gl.getParameter(gl.RENDERER));
+            console.log('WebGL version:', gl.getParameter(gl.VERSION));
+          } else {
+            console.log('WebGL not available');
+          }
+        } catch(e) {
+          console.log('WebGL check error:', e);
+        }
+      }
+      checkWebGL();
     </script>
   </head>
   <body>
